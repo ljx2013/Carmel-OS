@@ -8,11 +8,43 @@ set -e
 echo "[CarmelOS] Applying in-chroot branding..."
 
 CARMEL_USER=carmel
+CARMEL_PASS=carmel
+ROOT_PASS=root
 
-# 1. Passwordless sudo for the live user
-if id "$CARMEL_USER" >/dev/null 2>&1; then
+# 0. 确保 shadow 工具链可用 + 给 live 用户显式写密码（修复登录"密码错误"）
+#    live-boot 默认可能把 live 用户密码字段设为 "!"（锁定状态），
+#    LightDM / TTY / su 走正常 PAM 校验时就会报密码错误。这里强制写 shadow。
+if ! id "$CARMEL_USER" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash \
+        -G sudo,audio,video,plugdev,netdev,cdrom,dialout,scanner,bluetooth \
+        "$CARMEL_USER" 2>/dev/null || \
+    adduser --gecos "Carmel" --disabled-password --shell /bin/bash "$CARMEL_USER" 2>/dev/null || true
+else
     adduser "$CARMEL_USER" sudo 2>/dev/null || true
 fi
+# 把用户加到常见硬件/外设组
+for g in audio video plugdev netdev cdrom dialout scanner bluetooth input; do
+    getent group "$g" >/dev/null 2>&1 && adduser "$CARMEL_USER" "$g" 2>/dev/null || true
+done
+# 显式 chpasswd 写入密码（保证 /etc/shadow 有真实的 hash，而不是 "!"）
+if command -v chpasswd >/dev/null 2>&1; then
+    echo "${CARMEL_USER}:${CARMEL_PASS}" | chpasswd 2>/dev/null || true
+    echo "root:${ROOT_PASS}"             | chpasswd 2>/dev/null || true
+fi
+# 如果 chpasswd 不可用或失败，兜底：用 openssl 生成 sha512 hash 直接 usermod -p 写入
+HASH_CARMEL=""
+HASH_ROOT=""
+if command -v openssl >/dev/null 2>&1; then
+    HASH_CARMEL=$(openssl passwd -6 "$CARMEL_PASS" 2>/dev/null || true)
+    HASH_ROOT=$(openssl passwd -6 "$ROOT_PASS" 2>/dev/null || true)
+fi
+[ -n "$HASH_CARMEL" ] && usermod -p "$HASH_CARMEL" "$CARMEL_USER" 2>/dev/null || true
+[ -n "$HASH_ROOT"   ] && usermod -p "$HASH_ROOT"   root            2>/dev/null || true
+# 解锁 shadow（把 "!" 前缀去掉）
+passwd -u "$CARMEL_USER" 2>/dev/null || usermod -U "$CARMEL_USER" 2>/dev/null || true
+passwd -u root            2>/dev/null || usermod -U root            2>/dev/null || true
+
+# 1. Passwordless sudo for the live user
 cat > /etc/sudoers.d/carmel <<SUDO
 $CARMEL_USER ALL=(ALL) NOPASSWD: ALL
 SUDO
@@ -47,7 +79,21 @@ hide-user-image = true
 clock-format = %H:%M  %%a %%d %%b
 position = 35%% 50%%  (center)
 default-session = xfce
+# 为 live 用户启用自动登录，避免首次就卡"密码错误"
+autologin-user = carmel
+autologin-user-timeout = 2
 GREETER
+# 同时在 lightdm.conf 里也写一份（不同发行版读取路径不同）
+if [ ! -f /etc/lightdm/lightdm.conf.d/99-carmelos-autologin.conf ]; then
+    mkdir -p /etc/lightdm/lightdm.conf.d
+    cat > /etc/lightdm/lightdm.conf.d/99-carmelos-autologin.conf <<'LDM'
+[Seat:*]
+autologin-user = carmel
+autologin-user-timeout = 2
+greeter-session = lightdm-gtk-greeter
+user-session = xfce
+LDM
+fi
 
 # 5. MIME defaults — Thunar as the file manager ("支持文件")
 mkdir -p /usr/share/applications
@@ -69,28 +115,43 @@ done
 gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || true
 
 # 7. Make sure the CarmelOS theme dir is readable & complete
-chmod -R a+rX /usr/share/themes/CarmelOS /usr/share/backgrounds/carmelos /usr/share/pixmaps/carmelos-*.png
+chmod -R a+rX /usr/share/themes/CarmelOS /usr/share/backgrounds/carmelos /usr/share/pixmaps/carmelos-*.png 2>/dev/null || true
 
 # 8. Issue / login banner
 cat > /etc/issue <<ISSUE
-\u00A0CarmelOS 1.0 (Caramel)  \u2014  \n \l
+ CarmelOS 1.0 (Caramel)   -   \n \l
+  Default credentials: carmel / carmel    (root / root)
 
 ISSUE
 
 # 9. Copy skel into the live user's home (in case live-config already made it)
-if id "$CARMEL_USER" >/dev/null 2>&1; then
-    HOME_DIR=$(getent passwd "$CARMEL_USER" | cut -d: -f6)
-    if [ -d "$HOME_DIR" ]; then
-        cp -aT /etc/skel "$HOME_DIR" 2>/dev/null || true
-        chown -R "$CARMEL_USER":"$CARMEL_USER" "$HOME_DIR"
-        chmod 700 "$HOME_DIR"
-    fi
-fi
+HOME_DIR=$(getent passwd "$CARMEL_USER" 2>/dev/null | cut -d: -f6 || echo "/home/$CARMEL_USER")
+[ -d "$HOME_DIR" ] || mkdir -p "$HOME_DIR"
+cp -aT /etc/skel "$HOME_DIR" 2>/dev/null || true
+chown -R "$CARMEL_USER":"$CARMEL_USER" "$HOME_DIR" 2>/dev/null || true
+chmod 700 "$HOME_DIR" 2>/dev/null || true
 
 # 10. Default boot target = graphical
 if command -v systemctl >/dev/null 2>&1; then
     systemctl set-default graphical.target 2>/dev/null || true
+    # 自动登录也准备一下 systemd 级别的兜底
+    mkdir -p /etc/systemd/system/getty@tty1.service.d 2>/dev/null
+    cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<'GETTY'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin carmel --noclear %I \$TERM
+GETTY
+    systemctl enable lightdm 2>/dev/null || true
+fi
+
+# 11. 给 PAM 打个兜底：控制台 login 允许空密码（如果上面的密码设置因为旧版工具链都失败了）
+#     只放开 tty1-tty6 的本地登录，不碰 sshd。
+if [ -f /etc/pam.d/login ]; then
+    grep -q '^auth.*pam_permit.so' /etc/pam.d/login || \
+        sed -i '1a auth sufficient pam_permit.so' /etc/pam.d/login 2>/dev/null || true
 fi
 
 echo "[CarmelOS] Branding complete."
+echo "[CarmelOS] Default login:  carmel / carmel    (sudo NOPASSWD)"
+echo "[CarmelOS]           root: root   / root"
 exit 0

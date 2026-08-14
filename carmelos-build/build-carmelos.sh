@@ -36,11 +36,98 @@ run_proot() {
 }
 stage() { echo; echo "════════ $* ════════"; }
 
+# ── Stage 0: debootstrap a fresh Debian bookworm chroot ───────
+# (Sandbox lacks cap_sys_admin so we cannot use `mount --bind`, but
+#  debootstrap second-stage runs fine via proot + qemu-user-static.)
+stage "0/8  debootstrap Debian bookworm (amd64)"
+# 先把chroot清干净，确保debootstrap重试时不会"Target directory not empty"
+rm -rf "$CHROOT"
+mkdir -p "$CHROOT"
+if [ ! -x "$CHROOT/usr/bin/bash" ] || [ ! -x "$CHROOT/usr/bin/dpkg" ]; then
+  CACHE="$BUILD/cache/bootstrap"
+  mkdir -p "$CACHE"
+  SUITE=bookworm
+  ARCH=amd64
+  # 国内镜像优先，确保 libdb5.3 / e2fsprogs 等具体版本 deb 能拉下来
+  MIRRORS=(
+    "${DEBIAN_MIRROR:-}"
+    "http://mirrors.ustc.edu.cn/debian"
+    "http://mirrors.aliyun.com/debian"
+    "http://ftp.cn.debian.org/debian"
+    "http://deb.debian.org/debian"
+  )
+  TARBALL="$CACHE/debootstrap-${SUITE}-${ARCH}.tar"
+  TRY=0
+  SUCCESS=0
+  while [ $TRY -lt 5 ]; do
+    TRY=$((TRY+1))
+    # 每次循环前把chroot再清一次
+    rm -rf "$CHROOT"
+    mkdir -p "$CHROOT"
+    # 轮询镜像列表
+    for MIRROR in "${MIRRORS[@]}"; do
+      [ -z "$MIRROR" ] && continue
+      echo "debootstrap try $TRY mirror=$MIRROR"
+      if debootstrap \
+          --arch="$ARCH" \
+          --variant=minbase \
+          --components="main,contrib,non-free,non-free-firmware" \
+          --include="debian-archive-keyring,apt-transport-https,ca-certificates,locales,openssl,passwd,login,systemd" \
+          ${TARBALL:+--make-tarball="$TARBALL"} \
+          "$SUITE" "$CHROOT" "$MIRROR"; then
+        SUCCESS=1
+        break 2
+      else
+        echo "  mirror $MIRROR failed on try $TRY"
+        # 如果 tarball 被破坏了就删掉，下次重新生成
+        rm -f "$TARBALL" 2>/dev/null || true
+        sleep 2
+      fi
+    done
+    sleep 3
+  done
+  if [ "$SUCCESS" != "1" ] || [ ! -x "$CHROOT/usr/bin/bash" ]; then
+    echo "debootstrap failed after $TRY tries; aborting" >&2
+    exit 2
+  fi
+fi
+# ensure /etc/resolv.conf target directory exists (used right below, and
+# inside chroot for apt-get DNS)
+mkdir -p "$CHROOT/etc"
+mkdir -p "$CHROOT/tmp" "$CHROOT/dev" "$CHROOT/proc" "$CHROOT/sys"
+
 # ensure DNS resolution works inside the chroot
-cp /etc/resolv.conf "$CHROOT/etc/resolv.conf"
+cp /etc/resolv.conf "$CHROOT/etc/resolv.conf" 2>/dev/null || \
+  echo 'nameserver 1.1.1.1' > "$CHROOT/etc/resolv.conf"
+
+# enable apt retry + https
+mkdir -p "$CHROOT/etc/apt/apt.conf.d" "$CHROOT/etc/apt/sources.list.d"
+# 默认使用 debootstrap 成功时那个镜像（USTC/阿里云等），如果失败就回退安全列表
+if [ -f "$CHROOT/etc/apt/sources.list" ] && [ -s "$CHROOT/etc/apt/sources.list" ]; then
+  : # 保留 debootstrap 写好的 sources.list
+else
+  cat > "$CHROOT/etc/apt/sources.list" <<'SRCLIST'
+deb http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free non-free-firmware
+SRCLIST
+fi
+# 同时在第二个 sources.list.d 放一份国内镜像（apt会自动合并）
+cat > "$CHROOT/etc/apt/sources.list.d/carmelos-mirrors.list" <<'SRCLIST2'
+deb http://mirrors.aliyun.com/debian bookworm main contrib non-free non-free-firmware
+deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://mirrors.aliyun.com/debian bookworm-updates main contrib non-free non-free-firmware
+SRCLIST2
+cat > "$CHROOT/etc/apt/apt.conf.d/99-carmelos-retries" <<'APTCONF'
+Acquire::Retries "5";
+Acquire::http::Timeout "60";
+Acquire::https::Timeout "60";
+Acquire::Queue-Mode "host";
+APT::Get::AllowUnauthenticated "false";
+APTCONF
 
 # ── Stage 1: install packages (fast chroot) ──────────────────
-stage "1/7  apt-get install (via chroot)"
+stage "1/8  apt-get install (via chroot)"
 PKGS=$(grep -vE '^\s*#|^\s*$' "$CFG/package-lists/carmelos-desktop.list.chroot" | tr '\n' ' ')
 echo "Packages: $PKGS"
 
@@ -72,17 +159,17 @@ run_chroot apt-get -f install -y
 [ -e "$CHROOT/usr/sbin/update-grub.real" ] && mv "$CHROOT/usr/sbin/update-grub.real" "$CHROOT/usr/sbin/update-grub"
 
 # ── Stage 2: copy branding / includes into chroot ─────────────
-stage "2/7  copying CarmelOS branding into chroot"
+stage "2/8  copying CarmelOS branding into chroot"
 cp -aT "$CFG/includes.chroot/." "$CHROOT/"
 
 # ── Stage 3: run the branding hook inside the chroot ──────────
-stage "3/7  running branding hook (sudoers, locale, caches, greeter)"
+stage "3/8  running branding hook (sudoers, locale, caches, greeter)"
 cp -f "$CFG/hooks/normal/carmelos-branding.hook.chroot" "$CHROOT/carmelos-branding.hook"
 run_chroot bash /carmelos-branding.hook || echo "(hook had non-fatal warnings)"
 run_chroot rm -f /carmelos-branding.hook
 
 # ── Stage 4: live-boot configuration ─────────────────────────
-stage "4/7  configuring live-boot"
+stage "4/8  configuring live-boot"
 cat > "$CHROOT/etc/live.conf" <<'LIVECONF'
 LIVE_USERNAME="carmel"
 LIVE_USER_FULLNAME="Carmel"
@@ -90,6 +177,7 @@ LIVE_HOSTNAME="carmelos"
 LIVE_LOCALES="en_US.UTF-8"
 LIVE_KEYBOARD_LAYOUTS="us"
 LIVE_NOCONFIGURATIONS="false"
+LIVE_PASSWORD="carmel"
 LIVECONF
 mkdir -p "$CHROOT/etc/initramfs-tools/conf.d"
 echo "BOOT=live" > "$CHROOT/etc/initramfs-tools/conf.d/live-boot"
@@ -99,13 +187,13 @@ grep -q "^squashfs$" "$CHROOT/etc/initramfs-tools/modules" || echo "squashfs" >>
 grep -q "^loop$"     "$CHROOT/etc/initramfs-tools/modules" || echo "loop"     >> "$CHROOT/etc/initramfs-tools/modules"
 
 # ── Stage 5: (re)generate initramfs via proot (needs /proc) ───
-stage "5/7  regenerating initramfs (live-boot aware, via proot)"
+stage "5/8  regenerating initramfs (live-boot aware, via proot)"
 KVER=$(ls "$CHROOT/lib/modules" 2>/dev/null | sort -V | tail -1)
 echo "kernel version: $KVER"
 run_proot update-initramfs -u -k "$KVER" || run_proot update-initramfs -c -k "$KVER"
 
 # ── Stage 6: cleanup chroot to shrink the ISO ─────────────────
-stage "6/7  cleaning chroot"
+stage "6/8  cleaning chroot"
 run_chroot apt-get clean
 run_chroot apt-get autoremove -y 2>/dev/null || true
 rm -rf "$CHROOT/var/lib/apt/lists/"* "$CHROOT/var/cache/apt/archives/"*.deb
@@ -115,7 +203,7 @@ rm -f  "$CHROOT/var/log/"*.log "$CHROOT/var/log/apt/"* "$CHROOT/var/log/journal/
 [ -d "$CHROOT/home/carmel" ] && chown -R 1000:1000 "$CHROOT/home/carmel" 2>/dev/null || true
 
 # ── Stage 7: build squashfs + assemble hybrid ISO ─────────────
-stage "7/7  building squashfs and ISO"
+stage "7/8  building squashfs and ISO"
 rm -rf "$OUT" "$ISO"
 mkdir -p "$OUT/live" "$OUT/isolinux" "$OUT/boot/grub" "$OUT/EFI/BOOT"
 
@@ -136,7 +224,7 @@ cp "$CFG/bootloaders/isolinux/"* "$OUT/isolinux/"
 sed -e 's/@FLAVOUR@/carmelos/g' \
     -e 's|@KERNEL@|/live/vmlinuz|g' \
     -e 's|@INITRD@|/live/initrd.img|g' \
-    -e 's|@LB_BOOTAPPEND_LIVE@|boot=live components username=carmel hostname=carmelos locales=en_US.UTF-8 keyboard-layouts=us|g' \
+    -e 's|@LB_BOOTAPPEND_LIVE@|boot=live components username=carmel live-password=carmel hostname=carmelos locales=en_US.UTF-8 keyboard-layouts=us|g' \
     -e 's|@LB_BOOTAPPEND_FAILSAFE@|nomodeset vga=normal|g' \
     "$CFG/bootloaders/isolinux/live.cfg.in" > "$OUT/isolinux/live.cfg"
 
@@ -147,11 +235,11 @@ set timeout=5
 insmod all_video
 set gfxpayload=keep
 menuentry "CarmelOS 1.0 (Live)" {
-    linux /live/vmlinuz boot=live components username=carmel hostname=carmelos locales=en_US.UTF-8 keyboard-layouts=us
+    linux /live/vmlinuz boot=live components username=carmel live-password=carmel hostname=carmelos locales=en_US.UTF-8 keyboard-layouts=us
     initrd /live/initrd.img
 }
 menuentry "CarmelOS 1.0 (failsafe mode)" {
-    linux /live/vmlinuz boot=live components username=carmel hostname=carmelos nomodeset vga=normal
+    linux /live/vmlinuz boot=live components username=carmel live-password=carmel hostname=carmelos nomodeset vga=normal
     initrd /live/initrd.img
 }
 GRUB
