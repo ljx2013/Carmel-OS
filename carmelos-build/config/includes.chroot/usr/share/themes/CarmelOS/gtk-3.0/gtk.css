@@ -1,0 +1,239 @@
+/* ─────────────────────────────────────────────────────────────
+   CarmelOS GTK3 theme — orange & white
+   Palette:
+     Carmel Orange  #FF6A1A   (primary accent / selected)
+     Deep Orange    #E85A0C   (active / pressed)
+     Light Orange   #FFB37A   (hover / secondary)
+     Cream          #FFFBF7   (window background)
+     Pure White     #FFFFFF   (base)
+     Ink            #3A2410   (foreground text)
+   ───────────────────────────────────────────────────────────── */
+
+@define-color theme_bg_color #FFFBF7;
+@define-color theme_fg_color #3A2410;
+@define-color theme_base_color #FFFFFF;
+@define-color theme_text_color #2A1A08;
+@define-color theme_selected_bg_color #FF6A1A;
+@define-color theme_selected_fg_color #FFFFFF;
+@define-color theme_unfocused_selected_bg_color #FFB37A;
+@define-color theme_unfocused_selected_fg_color #3A2410;
+@define-color borders #FFD4B0;
+@define-color unfocused_borders #FFE5CC;
+@define-color warning_color #FF9A2E;
+@define-color error_color #E8420C;
+@define-color success_color #E89B0C;
+@define-color sidebar_bg_color #FFF4EC;
+
+* {
+    -GtkWindow-resize-grip-height: 0;
+    -GtkWindow-resize-grip-width: 0;
+    -GtkWidget-focus-line-width: 0;
+    outline: none;
+}
+
+window, .background {
+    background-color: @theme_bg_color;
+    color: @theme_fg_color;
+}
+
+dialog, messagedialog, .dialog {
+    background-color: @theme_base_color;
+}
+
+entry, spinbutton, entry.flat {
+    background-color: @theme_base_color;
+    color: @theme_text_color;
+    border: 1px solid @borders;
+    border-radius: 8px;
+    padding: 6px 8px;
+    box-shadow: inset 0 1px 2px rgba(232,90,12,0.06);
+}
+
+entry:focus, spinbutton:focus {
+    border-color: @theme_selected_bg_color;
+    box-shadow: 0 0 0 2px rgba(255,106,26,0.25);
+}
+
+button, .button {
+    background-image: linear-gradient(to bottom, #FFFFFF, #FFF1E6);
+    color: @theme_fg_color;
+    border: 1px solid @borders;
+    border-radius: 8px;
+    padding: 6px 14px;
+    box-shadow: none;
+    transition: all 120ms ease;
+}
+
+button:hover, .button:hover {
+    background-image: linear-gradient(to bottom, #FFE9D6, #FFD9BC);
+    border-color: @theme_selected_bg_color;
+}
+
+button:active, .button:active, button:checked {
+    background-image: linear-gradient(to bottom, @theme_selected_bg_color, @deep_orange);
+    color: #FFFFFF;
+    border-color: @deep_orange;
+}
+
+@define-color deep_orange #E85A0C;
+
+button.suggested-action {
+    background-image: linear-gradient(to bottom, #FF7A2E, @theme_selected_bg_color);
+    color: #FFFFFF;
+    border-color: @deep_orange;
+}
+
+button.suggested-action:hover {
+    background-image: linear-gradient(to bottom, #FF8A40, #FF6A1A);
+}
+
+button.destructive-action {
+    background-image: linear-gradient(to bottom, #E8420C, #C8320A);
+    color: #FFFFFF;
+    border-color: #B02808;
+}
+
+headerbar, .titlebar {
+    background-image: linear-gradient(to bottom, #FF6A1A, #E85A0C);
+    color: #FFFFFF;
+    border-bottom: 1px solid @deep_orange;
+    border-radius: 10px 10px 0 0;
+    padding: 6px 10px;
+}
+
+headerbar:backdrop, .titlebar:backdrop {
+    background-image: linear-gradient(to bottom, #FFB37A, #FFA559);
+    color: rgba(255,255,255,0.85);
+}
+
+headerbar button, .titlebar button {
+    background-color: rgba(255,255,255,0.12);
+    background-image: none;
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.22);
+}
+
+headerbar button:hover, .titlebar button:hover {
+    background-color: rgba(255,255,255,0.25);
+}
+
+headerbar button:active, .titlebar button:checked {
+    background-color: rgba(255,255,255,0.40);
+}
+
+menu, .menu, context-menu, popover, popover.background {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+    border: 1px solid @borders;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(232,90,12,0.18);
+}
+
+menuitem:hover, .menuitem:hover, modelbutton:hover {
+    background-color: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+    border-radius: 6px;
+}
+
+menubar, .menubar {
+    background-color: @theme_bg_color;
+    color: @theme_fg_color;
+}
+
+menubar > menuitem:hover {
+    background-color: @theme_selected_bg_color;
+    color: #FFFFFF;
+    border-radius: 6px 6px 0 0;
+}
+
+notebook tab, .notebook tab {
+    background-color: transparent;
+    color: @theme_fg_color;
+    padding: 5px 14px;
+    border-radius: 8px 8px 0 0;
+}
+
+notebook tab:checked, .notebook tab:checked {
+    background-color: @theme_base_color;
+    color: @theme_selected_bg_color;
+    font-weight: bold;
+}
+
+scrollbar slider {
+    background-color: #FFD4B0;
+    border-radius: 999px;
+    min-width: 8px;
+    min-height: 8px;
+}
+
+scrollbar slider:hover {
+    background-color: @theme_selected_bg_color;
+}
+
+scrollbar {
+    background-color: transparent;
+}
+
+treeview.view:selected, list row:selected, flowboxchild:selected {
+    background-color: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+}
+
+list row:hover, treeview.view:hover {
+    background-color: #FFE9D6;
+}
+
+sidebar, placessidebar, stacksidebar {
+    background-color: @sidebar_bg_color;
+}
+
+progressbar trough, levelbar trough, scale trough {
+    background-color: #FFE5CC;
+    border-radius: 999px;
+}
+
+progressbar progress, levelbar filled-block {
+    background-color: @theme_selected_bg_color;
+    border-radius: 999px;
+}
+
+scale highlight {
+    background-color: @theme_selected_bg_color;
+}
+
+switch:checked slider {
+    background-color: @theme_selected_bg_color;
+}
+
+switch:checked {
+    background-color: @deep_orange;
+}
+
+toolbar, .toolbar {
+    background-color: @theme_bg_color;
+    padding: 4px;
+}
+
+separator {
+    background-color: @borders;
+    min-height: 1px;
+}
+
+frame > border, .frame {
+    border: 1px solid @borders;
+    border-radius: 8px;
+}
+
+tooltip {
+    background-color: #3A2410;
+    color: #FFFBF7;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+.linked button {
+    border-radius: 0;
+}
+
+.linked button:first-child { border-radius: 8px 0 0 8px; }
+.linked button:last-child  { border-radius: 0 8px 8px 0; }

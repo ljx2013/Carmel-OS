@@ -1,0 +1,96 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────
+# CarmelOS chroot branding hook
+# Runs inside the chroot during the lb build (normal stage)
+# ─────────────────────────────────────────────────────────────
+set -e
+
+echo "[CarmelOS] Applying in-chroot branding..."
+
+CARMEL_USER=carmel
+
+# 1. Passwordless sudo for the live user
+if id "$CARMEL_USER" >/dev/null 2>&1; then
+    adduser "$CARMEL_USER" sudo 2>/dev/null || true
+fi
+cat > /etc/sudoers.d/carmel <<SUDO
+$CARMEL_USER ALL=(ALL) NOPASSWD: ALL
+SUDO
+chmod 0440 /etc/sudoers.d/carmel
+
+# 2. Generate the locale we promised in bootappend
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+locale-gen 2>/dev/null || true
+update-locale LANG=en_US.UTF-8 || true
+
+# 3. Default session = Xfce for the live user
+mkdir -p /var/lib/AccountsService/users /var/lib/AccountsService/icons
+cat > /var/lib/AccountsService/users/carmel <<ACCT
+[User]
+Session=xfce
+XSession=xfce
+SystemAccount=false
+Icon=/usr/share/pixmaps/carmelos-logo.png
+ACCT
+
+# 4. LightDM GTK greeter — orange/white look, CarmelOS logo
+mkdir -p /etc/lightdm
+cat > /etc/lightdm/lightdm-gtk-greeter.conf <<GREETER
+[greeter]
+theme-name = CarmelOS
+icon-theme-name = Papirus
+font-name = Noto Sans 11
+background = /usr/share/backgrounds/carmelos/carmelos-wallpaper.png
+user-background = false
+logo = /usr/share/pixmaps/carmelos-logo.png
+hide-user-image = true
+clock-format = %H:%M  %%a %%d %%b
+position = 35%% 50%%  (center)
+default-session = xfce
+GREETER
+
+# 5. MIME defaults — Thunar as the file manager ("支持文件")
+mkdir -p /usr/share/applications
+cat > /usr/share/applications/mimeinfo.cache-defaults <<MIME
+[Default Applications]
+inode/directory=Thunar.desktop
+x-directory/normal=Thunar.desktop
+application/x-gnome-saved-search=Thunar.desktop
+MIME
+
+# 6. Update icon + GTK caches so the CarmelOS theme & logo resolve by name
+for d in /usr/share/icons/Papirus /usr/share/icons/Adwaita; do
+    [ -d "$d" ] && gtk-update-icon-cache -q "$d" 2>/dev/null || true
+done
+for sz in 16 22 24 32 48 64 96 128 256; do
+    d=/usr/share/icons/hicolor/${sz}x${sz}/apps
+    [ -d "$d" ] && gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null && break || true
+done
+gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || true
+
+# 7. Make sure the CarmelOS theme dir is readable & complete
+chmod -R a+rX /usr/share/themes/CarmelOS /usr/share/backgrounds/carmelos /usr/share/pixmaps/carmelos-*.png
+
+# 8. Issue / login banner
+cat > /etc/issue <<ISSUE
+\u00A0CarmelOS 1.0 (Caramel)  \u2014  \n \l
+
+ISSUE
+
+# 9. Copy skel into the live user's home (in case live-config already made it)
+if id "$CARMEL_USER" >/dev/null 2>&1; then
+    HOME_DIR=$(getent passwd "$CARMEL_USER" | cut -d: -f6)
+    if [ -d "$HOME_DIR" ]; then
+        cp -aT /etc/skel "$HOME_DIR" 2>/dev/null || true
+        chown -R "$CARMEL_USER":"$CARMEL_USER" "$HOME_DIR"
+        chmod 700 "$HOME_DIR"
+    fi
+fi
+
+# 10. Default boot target = graphical
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl set-default graphical.target 2>/dev/null || true
+fi
+
+echo "[CarmelOS] Branding complete."
+exit 0

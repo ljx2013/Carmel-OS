@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-panel" version="1.0">
+  <property name="panels" type="uint" value="1">
+    <property name="panel-0" type="empty">
+      <property name="position" type="string" value="p=6;x=0;y=0"/>
+      <property name="length" type="uint" value="100"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="size" type="uint" value="38"/>
+      <property name="length-adjust" type="bool" value="true"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+        <value type="int" value="5"/>
+        <value type="int" value="6"/>
+        <value type="int" value="7"/>
+        <value type="int" value="8"/>
+        <value type="int" value="9"/>
+        <value type="int" value="10"/>
+        <value type="int" value="11"/>
+      </property>
+      <property name="background-style" type="uint" value="0"/>
+      <property name="background-alpha" type="uint" value="100"/>
+      <property name="mode" type="uint" value="0"/>
+      <property name="autohide-behavior" type="uint" value="0"/>
+      <property name="icon-size" type="uint" value="22"/>
+      <property name="enter-opacity" type="uint" value="100"/>
+      <property name="leave-opacity" type="uint" value="100"/>
+    </property>
+  </property>
+  <property name="plugins" type="empty">
+    <!-- Whisker menu (custom CarmelOS start menu) -->
+    <property name="plugin-1" type="string" value="whiskermenu">
+      <property name="default-category" type="int" value="0"/>
+      <property name="show-button-title" type="bool" value="true"/>
+      <property name="button-title" type="string" value="CarmelOS"/>
+      <property name="button-icon" type="string" value="carmelos-logo"/>
+      <property name="icon-size" type="int" value="2"/>
+      <property name="show-icons" type="bool" value="true"/>
+      <property name="show-categories" type="bool" value="true"/>
+      <property name="menu-width" type="int" value="540"/>
+      <property name="menu-height" type="int" value="520"/>
+      <property name="view-mode" type="int" value="1"/>
+      <property name="position-categories" type="bool" value="false"/>
+      <property name="position-search" type="bool" value="false"/>
+      <property name="style" type="int" value="0"/>
+    </property>
+    <!-- Separator -->
+    <property name="plugin-2" type="string" value="separator">
+      <property name="expand" type="bool" value="false"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <!-- File manager quick launch -->
+    <property name="plugin-3" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="file-manager.desktop"/>
+      </property>
+    </property>
+    <!-- Terminal quick launch -->
+    <property name="plugin-4" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="xfce4-terminal.desktop"/>
+      </property>
+    </property>
+    <!-- App finder quick launch -->
+    <property name="plugin-5" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="xfce4-appfinder.desktop"/>
+      </property>
+    </property>
+    <!-- Separator -->
+    <property name="plugin-6" type="string" value="separator">
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <!-- Window buttons (tasklist) -->
+    <property name="plugin-7" type="string" value="tasklist">
+      <property name="flat-buttons" type="bool" value="true"/>
+      <property name="show-labels" type="bool" value="true"/>
+      <property name="grouping" type="bool" value="false"/>
+      <property name="show-wireframes" type="bool" value="false"/>
+      <property name="switch-workspace-on-unminimize" type="bool" value="true"/>
+    </property>
+    <!-- Separator -->
+    <property name="plugin-8" type="string" value="separator">
+      <property name="expand" type="bool" value="false"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <!-- System tray -->
+    <property name="plugin-9" type="string" value="systray">
+      <property name="show-frame" type="bool" value="false"/>
+      <property name="square-icons" type="bool" value="true"/>
+      <property name="names-ordered" type="array"/>
+    </property>
+    <!-- Status tray plugin (network, sound, power) -->
+    <property name="plugin-10" type="string" value="pulseaudio">
+      <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
+      <property name="show-notifications" type="bool" value="true"/>
+      <property name="mixer-command" type="string" value="xfce4-mixer"/>
+    </property>
+    <!-- Clock -->
+    <property name="plugin-11" type="string" value="clock">
+      <property name="digital-format" type="string" value="%H:%M  %a %d %b"/>
+      <property name="mode" type="uint" value="2"/>
+      <property name="tooltip-format" type="string" value="%A %d %B %Y, %V"/>
+    </property>
+  </property>
+</channel>

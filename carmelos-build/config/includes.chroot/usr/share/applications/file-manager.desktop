@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Name=File Manager
+Name[zh_CN]=文件管理器
+GenericName=File Manager
+GenericName[zh_CN]=文件管理器
+Comment=Browse the file system
+Comment[zh_CN]=浏览文件系统
+Exec=thunar %U
+Icon=system-file-manager
+Terminal=false
+Type=Application
+Categories=System;FileManager;FileTools;Core;
+StartupNotify=true
+MimeType=inode/directory;

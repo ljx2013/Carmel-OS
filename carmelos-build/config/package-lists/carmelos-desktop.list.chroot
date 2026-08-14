@@ -1,0 +1,88 @@
+# ── CarmelOS desktop package list ──────────────────────────────
+# Kernel + live boot infrastructure
+linux-image-amd64
+live-boot
+live-config
+live-config-systemd
+
+# X11 / Xorg
+xorg
+xserver-xorg
+xserver-xorg-video-all
+xserver-xorg-input-all
+x11-utils
+x11-xserver-utils
+mesa-utils
+xauth
+
+# Xfce desktop environment
+xfce4
+xfce4-whiskermenu-plugin
+xfce4-terminal
+xfce4-screenshooter
+xfce4-notifyd
+xfce4-power-manager
+xfce4-settings
+
+# File manager and file support ("支持文件")
+thunar
+thunar-volman
+thunar-archive-plugin
+thunar-media-tags-plugin
+file-roller
+gvfs
+gvfs-backends
+policykit-1-gnome
+udisks2
+
+# Display manager with autologin
+lightdm
+lightdm-gtk-greeter
+accountsservice
+xdg-utils
+desktop-file-utils
+
+# Theming / fonts
+gtk2-engines-murrine
+gnome-themes-extra
+adwaita-icon-theme
+papirus-icon-theme
+fonts-dejavu
+fonts-liberation
+fonts-noto-core
+
+# Network
+network-manager
+network-manager-gnome
+
+# Audio (PipeWire stack + Xfce mixer applet)
+pipewire-audio
+pipewire-pulse
+pipewire-alsa
+pipewire-audio-client-libraries
+xfce4-pulseaudio-plugin
+pavucontrol
+
+# System utilities
+sudo
+bash-completion
+dbus-x11
+pciutils
+usbutils
+less
+nano
+wget
+curl
+rsync
+htop
+btop
+unzip
+p7zip-full
+locales
+console-setup
+keyboard-configuration
+
+# Firmware for broad hardware support (free subset only to keep ISO lean)
+firmware-linux
+
+# Browser (add firefox-esr later if needed; omitted to reduce download)

@@ -1,0 +1,11 @@
+NAME="CarmelOS"
+VERSION="1.0 (Caramel)"
+ID=carmelos
+ID_LIKE=debian
+PRETTY_NAME="CarmelOS 1.0 (Caramel)"
+VERSION_ID="1.0"
+HOME_URL="https://carmelos.local/"
+SUPPORT_URL="https://carmelos.local/support"
+BUG_REPORT_URL="https://carmelos.local/bugs"
+ANSI_COLOR="1;38;5;208"
+LOGO=carmelos

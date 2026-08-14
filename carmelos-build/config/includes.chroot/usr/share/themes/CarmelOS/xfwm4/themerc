@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────
+# CarmelOS xfwm4 window decoration theme
+# Orange title bar with white window borders
+# ─────────────────────────────────────────────
+
+# Active titlebar
+active_text_color=#FFFFFF
+active_title_1=#FF6A1A
+active_title_2=#E85A0C
+active_title_3=#C84A08
+active_title_4=#A83C06
+active_halignment_1=0
+active_halignment_2=0
+active_halignment_3=0
+active_halignment_4=0
+active_gradient=1
+# Window border
+active_border_color=#E85A0C
+# Frame shadow
+active_shadow_delta_x=0
+active_shadow_delta_y=-3
+active_shadow_delta_width=0
+active_shadow_delta_height=0
+active_shadow_opacity=40
+
+# Inactive titlebar
+inactive_text_color=#FFFFFF
+inactive_title_1=#FFB37A
+inactive_title_2=#FFA559
+inactive_title_3=#E8944A
+inactive_title_4=#D8843C
+inactive_halignment_1=0
+inactive_halignment_2=0
+inactive_halignment_3=0
+inactive_halignment_4=0
+inactive_gradient=1
+inactive_border_color=#FFB37A
+inactive_shadow_delta_x=0
+inactive_shadow_delta_y=-2
+inactive_shadow_delta_width=0
+inactive_shadow_delta_height=0
+inactive_shadow_opacity=20
+
+# Button layout (left: none, right: min,max,close)
+button_layout=H|MC
+full_width_title=true
+rounded_top=true
+title_shadow_active=false
+title_shadow_inactive=false
+title_horizontal_offset=0
+title_vertical_offset_active=0
+title_vertical_offset_inactive=0

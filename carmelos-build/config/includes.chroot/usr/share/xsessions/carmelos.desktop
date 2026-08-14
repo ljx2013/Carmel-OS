@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=CarmelOS
+Name[zh_CN]=CarmelOS
+Comment=The CarmelOS desktop (Xfce-based, orange & white)
+Comment[zh_CN]=CarmelOS 桌面 (基于 Xfce, 橙白主题)
+Exec=startxfce4
+Icon=carmelos-logo
+Type=Application
+DesktopNames=X-CarmelOS;XFCE;
