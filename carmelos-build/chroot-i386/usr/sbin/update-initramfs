@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "[carmelos] (fake) update-initramfs $*"
+exit 0
